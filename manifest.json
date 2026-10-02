@@ -1,0 +1,16 @@
+{
+  "name": "Duit Gue",
+  "short_name": "Duit Gue",
+  "description": "Catat uang masuk dan keluar, cash dan e-money. Data tersimpan di perangkat sendiri.",
+  "lang": "id",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#F3F4F1",
+  "theme_color": "#1C2C86",
+  "icons": [
+    { "src": "icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}
