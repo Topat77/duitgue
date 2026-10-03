@@ -176,7 +176,9 @@ h3{font-size:16px;font-weight:600}
 .pnav button{width:36px;height:36px;border-radius:10px;border:1px solid var(--line);background:var(--surface);display:grid;place-items:center}
 .pnav button:disabled{opacity:.35;cursor:default}
 .pnav button svg{width:16px;height:16px}
-.pnav .lbl{font-weight:700;min-width:0;text-align:center;padding-inline:4px}
+.pnav .lbl{min-width:0;text-align:center;padding-inline:6px;display:flex;flex-direction:column;line-height:1.25}
+.pnav .lbl b{font-weight:700;font-size:15px}
+.pnav .lbl small{font-size:12px;color:var(--muted);font-weight:600}
 .stats3{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
 .stats3 .stat .val{font-size:clamp(16px,3.6vw,20px);white-space:nowrap;overflow-wrap:normal}
 @media (max-width:520px){.stats3{grid-template-columns:1fr 1fr}.stats3 .net{grid-column:1/-1}}
@@ -399,11 +401,13 @@ function balances(){
 function totals(){const b=balances();let cash=0,em=0;S.wallets.forEach(w=>{if(w.kind==="cash")cash+=b[w.id];else em+=b[w.id];});return{b,cash,em,all:cash+em};}
 function period(unit,off){
   const n=new Date();
+  if(unit==="day"){const s=new Date(n.getFullYear(),n.getMonth(),n.getDate()+off);return{s,e:new Date(s)};}
   if(unit==="week"){const s=new Date(n.getFullYear(),n.getMonth(),n.getDate());s.setDate(s.getDate()-((s.getDay()+6)%7)+off*7);const e=new Date(s);e.setDate(s.getDate()+6);return{s,e};}
   const s=new Date(n.getFullYear(),n.getMonth()+off,1);return{s,e:new Date(s.getFullYear(),s.getMonth()+1,0)};
 }
 function periodLabel(unit,{s,e}){
   if(unit==="month")return BULAN[s.getMonth()]+" "+s.getFullYear();
+  if(unit==="day")return HARI[s.getDay()]+", "+s.getDate()+" "+BLN[s.getMonth()]+" "+s.getFullYear();
   const sameM=s.getMonth()===e.getMonth();
   return s.getDate()+(sameM?"":" "+BLN[s.getMonth()])+" – "+e.getDate()+" "+BLN[e.getMonth()]+" "+e.getFullYear();
 }
@@ -532,7 +536,7 @@ function rekapHTML(){
   cols.forEach(c=>{c.in=0;c.out=0;});
   f.items.forEach(i=>{const c=cols.find(c=>i.date>=c.a&&i.date<=c.b);if(c)c[i.type]+=i.amt;});
   const mx=Math.max(1,...cols.map(c=>Math.max(c.in,c.out)));
-  const step=niceStep(mx/2),top=step*2;
+  const step=niceStep(Math.max(mx,2000)/2),top=step*2;
   const chart='<div class="chart" role="img" aria-label="Grafik uang masuk dan keluar"><div class="grid"><div>'+short(top)+'</div><div>'+short(step)+'</div><div>0</div></div>'+
     cols.map(c=>'<div class="col'+(c.today?" today":"")+'" title="'+esc(c.x)+': masuk '+rp(c.in)+', keluar '+rp(c.out)+'"><span class="b in" style="height:'+(c.in/top*100)+'%"></span><span class="b out" style="height:'+(c.out/top*100)+'%"></span><span class="x">'+c.x+'</span></div>').join("")+'</div>';
   const cm={};f.items.filter(i=>i.type==="out").forEach(i=>cm[i.cat]=(cm[i.cat]||0)+i.amt);
@@ -547,14 +551,27 @@ function rekapHTML(){
       return '<div class="cat"><div class="top2"><span>'+esc(catName("out",c))+'</span><b class="num">'+rp(v)+' <span class="muted" style="font-weight:600">/ '+short(bud)+'</span></b></div><div class="bar"><i class="'+(over?"":"ok")+'" style="width:'+Math.min(100,v/bud*100)+'%"></i></div><div class="bnote'+(over?" over":"")+'">'+(over?"Lewat "+rp(v-bud)+" dari batas":"Sisa "+rp(bud-v))+'</div></div>';
     }).join("")+'</div>':'<div class="empty">Belum ada pengeluaran di periode ini.</div>';
   const net=f.tin-f.tout;
-  return '<div class="panel stack"><div class="controls"><h2>Rekap</h2><div class="seg" role="group" aria-label="Periode"><button data-unit="week" aria-pressed="'+(R.unit==="week")+'">Mingguan</button><button data-unit="month" aria-pressed="'+(R.unit==="month")+'">Bulanan</button></div></div>'+
-   '<div class="controls"><div class="pnav"><button data-off="-1" aria-label="Sebelumnya">'+IC.left+'</button><span class="lbl">'+periodLabel(R.unit,P)+'</span><button data-off="1" aria-label="Berikutnya" '+(R.off>=0?"disabled":"")+'>'+IC.right+'</button></div>'+
+  return '<div class="panel stack"><div class="controls"><h2>Rekap</h2><div class="seg" role="group" aria-label="Periode"><button data-unit="day" aria-pressed="'+(R.unit==="day")+'">Harian</button><button data-unit="week" aria-pressed="'+(R.unit==="week")+'">Mingguan</button><button data-unit="month" aria-pressed="'+(R.unit==="month")+'">Bulanan</button></div></div>'+
+   '<div class="controls"><div class="pnav"><button data-off="-1" aria-label="Sebelumnya">'+IC.left+'</button><span class="lbl"><b>'+relLabel(R.unit,R.off)+'</b><small>'+periodLabel(R.unit,P)+'</small></span><button data-off="1" aria-label="Berikutnya" '+(R.off>=0?"disabled":"")+'>'+IC.right+'</button></div>'+
     '<div class="chips" role="group" aria-label="Sumber uang">'+[["all","Semua"],["cash","Cash"],["em","E-money"]].map(([k,l])=>'<button class="chip" data-filter="'+k+'" aria-pressed="'+(R.filter===k)+'">'+(k==="cash"?'<span class="dot cash"></span>':k==="em"?'<span class="dot em"></span>':"")+l+'</button>').join("")+'</div></div>'+
    '<div class="stats3"><div class="stat in"><div class="lbl">Masuk</div><div class="val num">'+rp(f.tin)+'</div></div><div class="stat out"><div class="lbl">Keluar</div><div class="val num">'+rp(f.tout)+'</div></div><div class="stat net"><div class="lbl">Selisih</div><div class="val num">'+(net>0?"+":"")+rp(net)+'</div></div></div>'+
-   '<div class="row between" style="flex-wrap:wrap"><h3>'+(R.unit==="week"?"Per hari":"Per minggu")+'</h3><div class="legend"><span><i class="dot in"></i>Masuk</span><span><i class="dot out"></i>Keluar</span></div></div>'+chart+
+   (f.items.length?'':'<div class="hint">'+'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 8h.01"/></svg>'+'<span>Belum ada transaksi di periode ini. Saldo awal dan "Sesuaikan saldo" nggak dihitung sebagai uang masuk. Catat pemasukan dan pengeluaran lewat tombol <b>Catat</b> di halaman E-money atau Dompet.</span></div>')+
+   (R.unit==="day"?dayListHTML(P,R.filter):'<div class="row between" style="flex-wrap:wrap"><h3>'+(R.unit==="week"?"Per hari":"Per minggu")+'</h3><div class="legend"><span><i class="dot in"></i>Masuk</span><span><i class="dot out"></i>Keluar</span></div></div>'+chart)+
    '<div class="row between" style="margin-top:6px;flex-wrap:wrap"><h3>Pengeluaran per kategori</h3><button class="btn sm ghost" data-catmgr>Atur kategori &amp; batas</button></div>'+cats+
    (hasB&&!showB?'<p class="muted" style="font-size:12.5px;margin:0">Batas pengeluaran tampil di rekap <b>Bulanan</b> dengan pilihan <b>Semua</b>.</p>':'')+
    '<p class="muted" style="font-size:12.5px;margin:0">Pindah saldo antar dompet nggak dihitung sebagai masuk atau keluar. Biaya adminnya dihitung sebagai pengeluaran.</p></div>';
+}
+function dayListHTML(P,filter){
+  const d=ymd(P.s);
+  const ok=t=>{if(filter==="all")return true;return [t.wallet,t.to].filter(Boolean).some(id=>{const w=wById(id);return w&&(filter==="cash"?w.kind==="cash":w.kind!=="cash");});};
+  const list=sortedTx(S.txs.filter(t=>t.date===d&&ok(t)));
+  if(!list.length)return"";
+  return '<div class="row between"><h3>Transaksi</h3><span class="muted" style="font-size:13px">'+list.length+' catatan</span></div><div class="txlist">'+list.map(txRow).join("")+'</div>';
+}
+function relLabel(unit,off){
+  if(unit==="day")return off===0?"Hari ini":off===-1?"Kemarin":(-off)+" hari lalu";
+  if(unit==="week")return off===0?"Minggu ini":off===-1?"Minggu lalu":(-off)+" minggu lalu";
+  return off===0?"Bulan ini":off===-1?"Bulan lalu":(-off)+" bulan lalu";
 }
 function niceStep(v){if(v<=0)return 1;const p=Math.pow(10,Math.floor(Math.log10(v)));const n=v/p;return(n<=1?1:n<=2?2:n<=2.5?2.5:n<=5?5:10)*p;}
 
