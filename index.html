@@ -379,7 +379,7 @@ const CATS={
   in:[["gaji","Gaji"],["saku","Uang saku"],["bonus","Bonus"],["hadiah","Hadiah"],["jualan","Hasil jualan"],["lain","Lainnya"]]
 };
 const HCATS={
-  out:[["listrik","Listrik/token"],["air","Air"],["galon","Galon & gas"],["bersih","Kebersihan & sabun"],["perbaikan","Perbaikan"],["internet","Internet/WiFi"],["sewa","Sewa rumah"],["lain","Lainnya"]],
+  out:[["konsumsi","Konsumsi"],["perlengkapan","Perlengkapan"],["kegiatan","Acara & kegiatan"],["bersih","Kebersihan"],["perbaikan","Perbaikan"],["tagihan","Listrik, air & internet"],["sewa","Sewa"],["lain","Lainnya"]],
   in:[["iuran","Iuran bulanan"],["darurat","Iuran darurat"],["lain","Lainnya"]]
 };
 const defCats=t=>(isHouse()?HCATS:CATS)[t].map(([id,name])=>({id,name}));
@@ -409,7 +409,7 @@ Object.keys(FIELDS).forEach(k=>Object.defineProperty(S,k,{
   set(v){const b=book();if(b)b.data[k]=v;}
 }));
 function newBook(type,name){
-  const b={id:"b"+newId(),type,name:(name||"").trim()||(type==="house"?"Kas Kontrakan":"Pribadi"),created:ymd(new Date()),data:{wallets:[],txs:[],cats:null,sample:false,members:[],dues:[],events:[]}};
+  const b={id:"b"+newId(),type,name:(name||"").trim()||(type==="house"?"Uang Bersama":"Pribadi"),created:ymd(new Date()),data:{wallets:[],txs:[],cats:null,sample:false,members:[],dues:[],events:[]}};
   S.store.books.push(b);S.store.active=b.id;S.view="home";S.rk.off=0;S.iu.off=0;S.evOpen=null;return b;
 }
 function switchBook(id){if(!S.store.books.some(b=>b.id===id))return;S.store.active=id;S.view="home";S.rk.off=0;S.iu.off=0;S.evOpen=null;localSave();render();window.scrollTo(0,0);}
@@ -780,16 +780,16 @@ function chooserHTML(){
    '<div><div class="eyebrow">Selamat datang di Duit Gue</div><div class="onb"><div class="big">Mau nyatet duit apa?</div></div><p class="muted" style="margin:6px 0 0">Pilih satu dulu. Nanti bisa nambah buku lain lewat tombol nama buku di bagian atas.</p></div>'+
    '<div class="chooser">'+
     '<button class="choice" data-firstbook="personal"><b>Pribadi</b><span>Catat uang masuk dan keluar lo sendiri, cash dan e-money.</span></button>'+
-    '<button class="choice" data-firstbook="house"><b>Kas kontrakan</b><span>Buat bendahara: iuran bulanan, iuran darurat, dan laporan buat grup.</span></button>'+
+    '<button class="choice" data-firstbook="house"><b>Uang bersama</b><span>Buat bendahara kas kontrakan, kelas, organisasi, atau tongkrongan: iuran bulanan, iuran darurat, dan laporan buat grup.</span></button>'+
    '</div><div><button class="btn ghost sm" data-restore>Pulihkan dari file backup</button></div></div>';
 }
 function openBooks(){
   const B=book();
   const html='<div class="row between"><h2>Buku catatan</h2><button class="iconbtn" data-close aria-label="Tutup">'+IC.x+'</button></div>'+
-   '<div class="booklist">'+S.store.books.map(b=>'<button class="bookrow" data-setbook="'+esc(b.id)+'" aria-current="'+(b.id===S.store.active)+'"><span class="dot '+(b.type==="house"?"cash":"em")+'"></span><span class="nm">'+esc(b.name)+'</span><small>'+(b.type==="house"?"Kas kontrakan":"Pribadi")+'</small></button>').join("")+'</div>'+
+   '<div class="booklist">'+S.store.books.map(b=>'<button class="bookrow" data-setbook="'+esc(b.id)+'" aria-current="'+(b.id===S.store.active)+'"><span class="dot '+(b.type==="house"?"cash":"em")+'"></span><span class="nm">'+esc(b.name)+'</span><small>'+(b.type==="house"?"Uang bersama":"Pribadi")+'</small></button>').join("")+'</div>'+
    (B?'<div class="field"><label for="bkName">Ganti nama buku ini</label><div class="row"><input class="inp" id="bkName" maxlength="30" value="'+esc(B.name)+'"><button class="btn ghost" id="bkRename">Simpan</button></div></div>':'')+
-   '<div class="field"><label for="nbName">Bikin buku baru</label><div class="chips"><button class="chip" data-nbtype="personal" aria-pressed="false">Pribadi</button><button class="chip" data-nbtype="house" aria-pressed="true">Kas kontrakan</button></div>'+
-    '<div class="row" style="margin-top:6px"><input class="inp" id="nbName" maxlength="30" placeholder="Nama buku, mis. Kontrakan Sukun"><button class="btn" id="nbGo">Bikin</button></div></div>'+
+   '<div class="field"><label for="nbName">Bikin buku baru</label><div class="chips"><button class="chip" data-nbtype="personal" aria-pressed="false">Pribadi</button><button class="chip" data-nbtype="house" aria-pressed="true">Uang bersama</button></div>'+
+    '<div class="row" style="margin-top:6px"><input class="inp" id="nbName" maxlength="30" placeholder="Nama buku, mis. Kas Kelas 2A"><button class="btn" id="nbGo">Bikin</button></div></div>'+
    '<p class="err" id="bkErr"></p>';
   let nbType="house";
   openSheet(html,()=>{$("#sheet").onclick=e=>{const b=e.target.closest("button");if(!b)return;
@@ -797,7 +797,7 @@ function openBooks(){
     if(b.dataset.setbook){closeSheet();switchBook(b.dataset.setbook);return;}
     if(b.dataset.nbtype){nbType=b.dataset.nbtype;document.querySelectorAll("[data-nbtype]").forEach(x=>x.setAttribute("aria-pressed",x===b));return;}
     if(b.id==="bkRename"){const nm=$("#bkName").value.trim();if(!nm){$("#bkErr").textContent="Nama buku nggak boleh kosong.";return;}book().name=nm;closeSheet();saveData();toast("Nama buku diganti.");return;}
-    if(b.id==="nbGo"){const nm=$("#nbName").value.trim();if(S.store.books.some(x=>x.name.toLowerCase()===(nm||(nbType==="house"?"Kas Kontrakan":"Pribadi")).toLowerCase())){$("#bkErr").textContent="Udah ada buku dengan nama itu.";return;}
+    if(b.id==="nbGo"){const nm=$("#nbName").value.trim();if(S.store.books.some(x=>x.name.toLowerCase()===(nm||(nbType==="house"?"Uang Bersama":"Pribadi")).toLowerCase())){$("#bkErr").textContent="Udah ada buku dengan nama itu.";return;}
       closeSheet();newBook(nbType,nm);localSave();render();window.scrollTo(0,0);toast("Buku baru dibuat. Isi dulu saldo awalnya.");}
   };});
 }
@@ -839,10 +839,10 @@ function memRowHTML(r,attr){
 function houseOnbHTML(){
   const B=book();
   return '<div class="panel onb stack" style="max-width:620px;width:100%;margin:0 auto">'+
-   '<div><div class="eyebrow">Kas kontrakan · langkah pertama</div><div class="big">Siapin buku '+esc(B.name)+'</div><p class="muted" style="margin:6px 0 0">Isi sekali di awal. Semuanya bisa diubah lagi nanti.</p></div>'+
+   '<div><div class="eyebrow">Uang bersama · langkah pertama</div><div class="big">Siapin buku '+esc(B.name)+'</div><p class="muted" style="margin:6px 0 0">Isi sekali di awal. Semuanya bisa diubah lagi nanti.</p></div>'+
    '<div class="field"><label for="hoName">Nama buku</label><input class="inp" id="hoName" maxlength="30" value="'+esc(B.name)+'"></div>'+
    '<div class="field"><label for="hoDue">Iuran bulanan per orang</label><div class="money"><input class="inp" id="hoDue" inputmode="numeric" value="100.000"></div></div>'+
-   '<div class="field"><label>Anggota kontrakan</label><div id="hoMem" class="stack" style="gap:8px"></div><button class="btn sm ghost" id="hoAdd" style="align-self:flex-start">+ Tambah anggota</button></div>'+
+   '<div class="field"><label>Daftar anggota</label><div id="hoMem" class="stack" style="gap:8px"></div><button class="btn sm ghost" id="hoAdd" style="align-self:flex-start">+ Tambah anggota</button></div>'+
    '<div class="field"><label for="onCash">Saldo kas sekarang: uang cash</label><div class="money"><input class="inp" id="onCash" inputmode="numeric" placeholder="0" autocomplete="off"></div></div>'+
    '<div class="field"><label>Saldo kas sekarang: e-money &amp; rekening</label><div id="emRows" class="stack" style="gap:8px"></div>'+
     '<div class="chips" id="emSug" style="margin-top:4px">'+EM_SUGGEST.map(n=>'<button class="chip" data-sug="'+n+'">+ '+n+'</button>').join("")+'<button class="chip" data-sug="">+ Lainnya</button></div></div>'+
@@ -1274,7 +1274,7 @@ function sanitizeBackup(d){
   if(!d||d.app!=="duitgue")return null;
   if(d.version===2&&d.store&&Array.isArray(d.store.books)){
     const books=d.store.books.filter(b=>b&&typeof b.id==="string"&&(b.type==="personal"||b.type==="house")&&b.data)
-      .map(b=>{const data=sanitizeData(b.data,true);return data?{id:b.id.slice(0,40),type:b.type,name:str(b.name,30)||(b.type==="house"?"Kas Kontrakan":"Pribadi"),created:/^\d{4}-\d{2}-\d{2}$/.test(b.created||"")?b.created:ymd(new Date()),data}:null;}).filter(Boolean);
+      .map(b=>{const data=sanitizeData(b.data,true);return data?{id:b.id.slice(0,40),type:b.type,name:str(b.name,30)||(b.type==="house"?"Uang Bersama":"Pribadi"),created:/^\d{4}-\d{2}-\d{2}$/.test(b.created||"")?b.created:ymd(new Date()),data}:null;}).filter(Boolean);
     if(!books.length)return null;
     const active=books.some(b=>b.id===d.store.active)?d.store.active:books[0].id;
     return{books,active};
