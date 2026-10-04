@@ -1555,16 +1555,16 @@ function drawPrive(first){
 
 /* ---------- nama pengguna (Google Form) ---------- */
 const UKEY="duitgue:user";
-const FORM_URL="https://docs.google.com/forms/d/e/1FAIpQLScTmOWbHrashxHW4xt6IWd0Q_aJwc_MhT3Za9vQ9R9Fa_tRBw/formResponse";
-const FORM_NAME_FIELD="entry.1674480531";
+const FORM_URL="https://docs.google.com/forms/d/e/1FAIpQLSeUFT1Xd00C8_H30Teg58mhWviav0exT_IXzXKp9Pg4oL7bPQ/formResponse";
+const FORM_NAME_FIELD="entry.524617519";
 let USER=null;
 function loadUser(){try{USER=JSON.parse(localStorage.getItem(UKEY)||"null");}catch(e){USER=null;}}
 function saveUser(){try{localStorage.setItem(UKEY,JSON.stringify(USER));}catch(e){}}
 function sendName(){
-  if(!USER||!USER.name||USER.sent)return;
+  if(!USER||!USER.name||USER.sentTo===FORM_URL)return;
   if(navigator.onLine===false)return;
   const body=new URLSearchParams();body.append(FORM_NAME_FIELD,USER.name);
-  fetch(FORM_URL,{method:"POST",mode:"no-cors",body}).then(()=>{USER.sent=Date.now();saveUser();}).catch(()=>{});
+  fetch(FORM_URL,{method:"POST",mode:"no-cors",body}).then(()=>{USER.sent=Date.now();USER.sentTo=FORM_URL;saveUser();}).catch(()=>{});
 }
 window.addEventListener("online",sendName);
 document.getElementById("wForm").addEventListener("submit",e=>{
