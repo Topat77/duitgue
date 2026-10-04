@@ -1,6 +1,6 @@
 // Duit Gue service worker: keeps a copy of the app so it opens without internet.
 // Naikkan angka VERSION setiap kali file aplikasi diubah.
-const VERSION = "duitgue-v6";
+const VERSION = "duitgue-v7";
 const APP = ["./", "./index.html", "./manifest.json", "./icon-192.png", "./icon-512.png", "./apple-touch-icon.png"];
 
 self.addEventListener("install", (e) => {
