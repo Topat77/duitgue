@@ -1,6 +1,6 @@
 // Duit Gue service worker: keeps a copy of the app so it opens without internet.
 // Naikkan angka VERSION setiap kali file aplikasi diubah.
-const VERSION = "duitgue-v10";
+const VERSION = "duitgue-v11";
 const APP = ["./", "./index.html", "./manifest.json", "./icon-192.png", "./icon-512.png", "./apple-touch-icon.png"];
 
 self.addEventListener("install", (e) => {
@@ -36,8 +36,9 @@ self.addEventListener("fetch", (e) => {
     return;
   }
 
-  // Huruf dari Google Fonts: simpan salinannya biar tampilan tetap sama waktu offline.
-  if (url.hostname === "fonts.googleapis.com" || url.hostname === "fonts.gstatic.com") {
+  // Kode login Google (Firebase) dan huruf dari Google Fonts: simpan salinannya biar tetap jalan offline.
+  if (url.hostname === "fonts.googleapis.com" || url.hostname === "fonts.gstatic.com" ||
+      (url.hostname === "www.gstatic.com" && url.pathname.startsWith("/firebasejs/"))) {
     e.respondWith(
       caches.match(req).then((hit) => {
         const net = fetch(req).then((res) => {
