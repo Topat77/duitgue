@@ -1,7 +1,13 @@
 // Duit Gue service worker: keeps a copy of the app so it opens without internet.
-// Naikkan angka VERSION setiap kali file aplikasi diubah.
-const VERSION = "duitgue-v12";
-const APP = ["./", "./index.html", "./manifest.json", "./icon-192.png", "./icon-512.png", "./apple-touch-icon.png"];
+// App files are fetched fresh whenever there is internet, so normal updates arrive without touching this file.
+// Only bump VERSION when you add, rename or remove a file in APP.
+const VERSION = "duitgue-v13";
+const APP = [
+  "./", "./index.html", "./manifest.json", "./icon-192.png", "./icon-512.png", "./apple-touch-icon.png",
+  "./css/app.css",
+  "./js/main.js", "./js/util.js", "./js/model.js", "./js/store.js", "./js/ui.js", "./js/views.js", "./js/pwa.js", "./js/xlsx.js",
+  "./js/sheets/tx.js", "./js/sheets/wallet.js", "./js/sheets/categories.js", "./js/sheets/data.js"
+];
 
 self.addEventListener("install", (e) => {
   e.waitUntil(caches.open(VERSION).then((c) => c.addAll(APP)).then(() => self.skipWaiting()));
@@ -17,43 +23,30 @@ self.addEventListener("activate", (e) => {
 
 function timeout(ms) { return new Promise((_, rej) => setTimeout(() => rej(new Error("timeout")), ms)); }
 
+// Network first (so updates show up right away), cached copy when offline or the network is too slow.
+function networkFirst(req, cacheKey) {
+  return Promise.race([fetch(req), timeout(3500)])
+    .then((res) => {
+      if (res.ok) { const copy = res.clone(); caches.open(VERSION).then((c) => c.put(cacheKey || req, copy)); }
+      return res;
+    })
+    .catch(() => caches.match(cacheKey || req, { ignoreSearch: true }).then((hit) => hit || Response.error()));
+}
+
 self.addEventListener("fetch", (e) => {
   const req = e.request;
   if (req.method !== "GET") return;
   const url = new URL(req.url);
 
-  // Halaman aplikasi: ambil versi terbaru kalau ada internet, kalau nggak pakai salinan.
-  if (req.mode === "navigate") {
-    e.respondWith(
-      Promise.race([fetch(req), timeout(3500)])
-        .then((res) => {
-          const copy = res.clone();
-          caches.open(VERSION).then((c) => c.put("./index.html", copy));
-          return res;
-        })
-        .catch(() => caches.match("./index.html"))
-    );
+  if (req.mode === "navigate") { e.respondWith(networkFirst(req, "./index.html")); return; }
+
+  // Fonts from Google: cached copy first, they never change.
+  if (url.hostname === "fonts.googleapis.com" || url.hostname === "fonts.gstatic.com") {
+    e.respondWith(caches.match(req).then((hit) => hit || fetch(req).then((res) => {
+      const copy = res.clone(); caches.open(VERSION).then((c) => c.put(req, copy)); return res;
+    })));
     return;
   }
 
-  // Kode login Google (Firebase) dan huruf dari Google Fonts: simpan salinannya biar tetap jalan offline.
-  if (url.hostname === "fonts.googleapis.com" || url.hostname === "fonts.gstatic.com" ||
-      (url.hostname === "www.gstatic.com" && url.pathname.startsWith("/firebasejs/"))) {
-    e.respondWith(
-      caches.match(req).then((hit) => {
-        const net = fetch(req).then((res) => {
-          const copy = res.clone();
-          caches.open(VERSION).then((c) => c.put(req, copy));
-          return res;
-        }).catch(() => hit || Response.error());
-        return hit || net;
-      })
-    );
-    return;
-  }
-
-  // File aplikasi lain (ikon, manifest): pakai salinan dulu.
-  if (url.origin === self.location.origin) {
-    e.respondWith(caches.match(req).then((hit) => hit || fetch(req)));
-  }
+  if (url.origin === self.location.origin) e.respondWith(networkFirst(req));
 });
