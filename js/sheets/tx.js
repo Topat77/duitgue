@@ -75,6 +75,6 @@ function saveTx(){
   if(msg){$("#fErr").textContent=msg;return;}
   const tx=buildTx(F,Date.now()),wasEdit=F.isEdit,bn=budgetNote(D,tx);
   closeSheet();F=null;
-  if(!putTx(tx)){toast("Gagal nyimpen. Penyimpanan perangkat penuh.",4000);return;}
+  putTx(tx);
   toast(bn||(wasEdit?"Perubahan disimpan.":"Tercatat!"),bn?4500:2600);
 }

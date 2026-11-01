@@ -250,3 +250,9 @@ html,body{margin:0}
 :root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
 [hidden]{display:none!important}
 img{max-width:100%}
+.welcome{min-height:100vh;min-height:100dvh;display:grid;place-items:center;padding-block:24px}
+.wbox{width:100%;max-width:420px;background:var(--surface);border:1px solid var(--line);border-radius:22px;padding:24px;display:flex;flex-direction:column;gap:16px;box-shadow:var(--shadow)}
+.wbox h1{font-size:30px;font-weight:800}
+.gbtn{background:var(--surface);color:var(--fg);border:1px solid var(--line);padding:13px 18px}
+.gbtn svg{width:20px;height:20px;flex:none}
+.gbtn[disabled]{opacity:.6;cursor:default}

@@ -1,5 +1,5 @@
 /* Sheet: add an e-money account, rename it, or correct a balance. */
-import {S,commit} from "../store.js";
+import {S,apply} from "../store.js";
 import {esc,rp,ymd,digits,dotted} from "../util.js";
 import {balances,wById,isCash,walletEdit,deleteWallet,EM_SUGGEST} from "../model.js";
 import {$,showSheet,closeSheet,closeBtn,toast,moneyInput,armConfirm,IC} from "../ui.js";
@@ -30,7 +30,7 @@ export function openWallet(id){
       if(b.dataset.sugname){$("#wName").value=b.dataset.sugname;$("#wBal").focus();return;}
       if(b.hasAttribute("data-del")){
         if(!armConfirm(b,used?"Yakin? "+used+" catatan ikut terhapus":"Yakin? Tekan lagi"))return;
-        closeSheet();S.data=deleteWallet(S.data,w.id);commit();toast("Akun dihapus.");return;}
+        closeSheet();apply(deleteWallet(S.data,w.id));toast("Akun dihapus.");return;}
       if(b.id!=="wSave")return;
       const nm=isCash(w)?"Cash":($("#wName").value||"").trim(),err=m=>{$("#wErr").textContent=m;};
       if(!nm)return err("Kasih nama akunnya dulu.");
@@ -38,7 +38,7 @@ export function openWallet(id){
       const want=digits($("#wBal").value),diff=want-cur;
       if(diff&&(w||want>0)&&!mode)return err("Pilih dulu: uang masuk baru, atau cuma nyocokin saldo.");
       const r=walletEdit(D,{id:w&&w.id,name:nm,want,mode},ymd(new Date()),Date.now());
-      closeSheet();S.data.wallets=r.wallets;if(r.tx)S.data.txs.push(r.tx);commit();
+      closeSheet();apply({wallets:r.wallets,put:r.tx?[r.tx]:[]});
       toast(r.tx?(r.tx.type==="in"?"Dicatat sebagai uang masuk "+rp(r.tx.amount)+".":"Dicatat sebagai pengeluaran "+rp(r.tx.amount)+"."):(w?"Akun diperbarui.":"Akun ditambahkan."),3200);
     };
     if(!w)setTimeout(()=>$("#wName").focus(),60);

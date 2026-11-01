@@ -1,7 +1,7 @@
 /* Page renderers: Beranda (home + rekap), E-money, Dompet (cash). They build HTML from S.data;
    clicks are dispatched in main.js via data-* attributes. */
-import {S,render,commit,lastBackup} from "./store.js";
-import {esc,rp,short,pad,ymd,BULAN,BLN,HARI,HR,newId,digits,niceStep,fmtDate,dayLabel,pYmd} from "./util.js";
+import {S,render,apply,lastBackup} from "./store.js";
+import {esc,rp,short,pad,ymd,BULAN,BLN,HARI,HR,newId,digits,niceStep,fmtDate,dayLabel} from "./util.js";
 import {totals,period,flows,byCategory,sortedTx,txMatch,catList,catName,wName,isCash,EM_SUGGEST} from "./model.js";
 import {$,IC,toast,moneyInput} from "./ui.js";
 import {installHTML} from "./pwa.js";
@@ -20,7 +20,7 @@ function groupedList(list,emptyMsg){
   for(const t of list){if(t.date!==cur){cur=t.date;h+='<div class="daygrp"><span>'+dayLabel(cur)+'</span></div>';}h+=txRow(t);}
   return'<div class="txlist">'+h+'</div>';
 }
-function greeting(){const h=new Date().getHours();return"Selamat "+(h<11?"pagi":h<15?"siang":h<18?"sore":"malam")+"!";}
+function greeting(){const h=new Date().getHours(),n=((S.user&&S.user.name)||"").trim().split(/\s+/)[0];const g=h<11?"pagi":h<15?"siang":h<18?"sore":"malam";return n?g[0].toUpperCase()+g.slice(1)+", "+esc(n)+"!":"Selamat "+g+"!";}
 
 /* history search on the E-money and Dompet pages */
 const histFilter=list=>{const q=(S.hq||"").trim();return q?list.filter(t=>txMatch(S.data,t,q)):list;};
@@ -36,22 +36,20 @@ function bindHistSearch(){
 }
 
 /* ---------- banners ---------- */
-function saveFailBanner(){
-  if(!S.saveFailed)return"";
-  return'<div class="banner" style="border-color:var(--out);background:var(--out-soft)"><p><b>Catatan terakhir gagal disimpan.</b> Penyimpanan browser di perangkat ini penuh atau diblokir. Backup sekarang biar nggak ada yang hilang.</p><button class="btn sm" data-backup>Backup sekarang</button></div>';
-}
-function backupNudge(){
-  if(S.data.txs.length<10)return"";
-  const lb=lastBackup(),age=lb?Math.floor((new Date()-pYmd(lb))/864e5):999;
-  if(age<14)return"";
-  return'<div class="banner"><p><b>'+(lb?"Udah "+age+" hari belum backup.":"Lo belum pernah backup.")+'</b> Data cuma ada di perangkat ini. Simpan file backup biar aman kalau HP ganti atau data browser kehapus.</p><button class="btn sm" data-backup>Backup sekarang</button></div>';
+function syncErrorBanner(){
+  if(!S.syncError)return"";
+  const rules=S.syncError==="permission-denied";
+  return'<div class="banner" style="border-color:var(--out);background:var(--out-soft)"><p><b>'+(rules?"Data ditolak server.":"Data belum bisa disinkron.")+'</b> '+
+   (rules?"Akun ini belum diizinkan nyimpen data (cek aturan Firestore). Catatan baru cuma ada di perangkat ini sampai masalahnya beres.":"Catatan tetap aman di perangkat ini dan bakal dicoba lagi. Kalau terus muncul, backup dulu biar aman.")+
+   '</p><button class="btn sm" data-backup>Backup sekarang</button></div>';
 }
 function dataPanel(){
-  const lb=lastBackup();
+  const lb=lastBackup(),u=S.user;
   return'<div class="panel stack"><div class="row between" style="flex-wrap:wrap"><h3>Data lo</h3><span class="muted" style="font-size:13px">'+(lb?"Backup terakhir: "+fmtDate(lb):"Belum pernah backup")+'</span></div>'+
-   '<p class="muted" style="margin:0;font-size:14px">Semua catatan tersimpan di browser perangkat ini. Rajin-rajin backup ya, apalagi sebelum ganti HP. Tombol Backup bisa langsung ngirim file ke Google Drive atau WhatsApp.</p>'+
+   '<p class="muted" style="margin:0;font-size:14px">Catatan lo tersimpan di akun dan tersinkron otomatis ke semua perangkat yang login pakai akun yang sama. Tetap bisa dipakai tanpa internet, nanti disinkron begitu online.</p>'+
+   (u?'<div class="hint"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="8" r="4"/><path d="M4 20c1.5-4 5-6 8-6s6.5 2 8 6"/></svg><span>Masuk sebagai <b>'+esc(u.email)+'</b></span></div>':'')+
    installHTML()+
-   '<div class="row" style="flex-wrap:wrap;gap:8px"><button class="btn sm" data-backup>Backup data</button><button class="btn sm ghost" data-export>Ekspor Excel</button><button class="btn sm ghost" data-restore>Pulihkan dari backup</button><button class="btn sm ghost" data-privacy>Privasi</button><button class="btn sm danger" data-confirm="wipe">Hapus semua data</button></div></div>';
+   '<div class="row" style="flex-wrap:wrap;gap:8px"><button class="btn sm" data-backup>Backup data</button><button class="btn sm ghost" data-export>Ekspor Excel</button><button class="btn sm ghost" data-restore>Pulihkan dari backup</button><button class="btn sm ghost" data-privacy>Privasi</button><button class="btn sm ghost" data-confirm="logout">Keluar</button><button class="btn sm danger" data-confirm="wipe">Hapus semua data</button></div></div>';
 }
 
 /* ---------- home ---------- */
@@ -59,7 +57,7 @@ export function renderHome(){
   const el=$("#v-home"),D=S.data;
   if(!D.wallets.length){el.innerHTML=onboardingHTML();bindOnboarding();return;}
   const T=totals(D),now=new Date(),nEm=D.wallets.filter(w=>!isCash(w)).length;
-  el.innerHTML=saveFailBanner()+backupNudge()+
+  el.innerHTML=syncErrorBanner()+
    '<div class="home-grid"><div class="stack">'+
     '<div class="greet"><div class="eyebrow">'+HARI[now.getDay()]+", "+now.getDate()+" "+BULAN[now.getMonth()]+" "+now.getFullYear()+'</div><h1>'+greeting()+'</h1></div>'+
     '<div class="note"><span class="serial">DG '+pad(now.getMonth()+1)+String(now.getFullYear()).slice(2)+'</span><div class="eyebrow">Total uang lo</div><div class="big num">'+rp(T.all)+'</div>'+
@@ -96,7 +94,7 @@ function bindOnboarding(){
       if(!nm){$("#onErr").textContent="Ada akun yang belum dikasih nama.";return;}
       if(seen.has(nm.toLowerCase())){$("#onErr").textContent="Nama akun "+nm+" dobel.";return;}
       seen.add(nm.toLowerCase());ws.push({id:newId(),name:nm,kind:"emoney",start:digits(m.value)});}
-    S.data.wallets=ws;commit();toast("Siap! Sekarang tinggal catat transaksi.");
+    apply({wallets:ws});toast("Siap! Sekarang tinggal catat transaksi.");
   };
 }
 

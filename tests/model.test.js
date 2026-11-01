@@ -1,6 +1,6 @@
 import {test} from "node:test";
 import assert from "node:assert/strict";
-import {balances,totals,period,flows,byCategory,txMatch,validateTx,buildTx,budgetNote,walletEdit,deleteWallet,cleanCats,sanitize,parseBackup,makeBackup,catName} from "../js/model.js";
+import {balances,totals,period,flows,byCategory,txMatch,validateTx,buildTx,budgetNote,walletEdit,deleteWallet,applyChange,replaceChange,cleanCats,sanitize,parseBackup,makeBackup,catName} from "../js/model.js";
 import {rp,short,digits,ymd,dayLabel} from "../js/util.js";
 import {buildWorkbook,exRange} from "../js/xlsx.js";
 
@@ -107,12 +107,28 @@ test("akun baru dengan saldo awal",()=>{
   assert.equal(w.kind,"emoney");assert.equal(w.start,70000);assert.equal(r.tx,null);
 });
 test("hapus akun ikut hapus transaksinya",()=>{
-  const d=deleteWallet(data(),"gopay");
+  const d=applyChange(data(),deleteWallet(data(),"gopay"));
   assert.ok(!d.wallets.some(w=>w.id==="gopay"));
   assert.ok(!d.txs.some(t=>t.wallet==="gopay"||t.to==="gopay"));
   assert.equal(d.txs.length,3);
 });
 
+test("applyChange: tambah, ganti, dan hapus transaksi sekaligus",()=>{
+  const d=data(),edited={...d.txs[0],amount:30000},baru={id:"t9",type:"in",amount:5,wallet:"cash",cat:"lain",date:"2026-10-09"};
+  const r=applyChange(d,{put:[edited,baru],del:["t2"],cats:null});
+  assert.equal(r.txs.length,5);
+  assert.equal(r.txs.find(t=>t.id==="t1").amount,30000);
+  assert.ok(!r.txs.some(t=>t.id==="t2"));
+  assert.equal(d.txs.length,5,"data asli nggak berubah");
+  assert.equal(d.txs[0].amount,25000);
+});
+test("replaceChange ngubah data lama jadi persis data baru",()=>{
+  const from=data(),to={...data(),wallets:[from.wallets[0]],txs:[from.txs[0],{id:"z",type:"out",amount:1,wallet:"cash",cat:"lain",date:"2026-10-01"}]};
+  const c=replaceChange(from,to),r=applyChange(from,c);
+  assert.deepEqual(r.txs.map(t=>t.id).sort(),["t1","z"]);
+  assert.equal(r.wallets.length,1);
+  assert.deepEqual(c.del.sort(),["t2","t3","t4","t5"]);
+});
 test("editor kategori nolak nama dobel dan kategori terpakai yang dikosongin",()=>{
   const d=data(),base={out:[{id:"makan",name:"Makan"},{id:"lain",name:"Lainnya"}],in:[{id:"gaji",name:"Gaji"}]};
   assert.ok(cleanCats(d,base).cats);

@@ -77,10 +77,11 @@ async function doExport(){
 export function openPrivacy(){
   const html='<div class="row between"><h2>Privasi</h2>'+closeBtn+'</div>'+
    '<div class="stack" style="gap:12px;font-size:14.5px">'+
-   '<p style="margin:0"><b>Data keuangan lo cuma ada di perangkat lo.</b> Semua yang lo catat (saldo, nama akun, transaksi, keterangan, kategori) disimpan di browser HP atau laptop yang lo pakai. Nggak ada server yang nyimpen atau bisa ngelihat data lo.</p>'+
-   '<p style="margin:0"><b>Nggak pakai akun.</b> Duit Gue nggak minta login, nomor rekening, nomor HP, PIN, atau password.</p>'+
+   '<p style="margin:0"><b>Data lo tersimpan di akun lo.</b> Saldo, nama akun, transaksi, keterangan, dan kategori disimpan di Firebase (layanan Google) milik pembuat Duit Gue, dipisah per akun Google. Aplikasi cuma bisa membaca data akun yang lagi login, jadi akun lain nggak bisa lihat catatan lo lewat Duit Gue.</p>'+
+   '<p style="margin:0"><b>Pemilik project bisa membuka database.</b> Secara teknis, pembuat Duit Gue sebagai pemilik project Firebase bisa membuka isi database lewat Firebase Console.</p>'+
+   '<p style="margin:0"><b>Login pakai Google.</b> Yang diterima cuma nama dan email akun Google lo. Duit Gue nggak pernah minta nomor rekening, nomor HP, PIN, atau password.</p>'+
    '<p style="margin:0"><b>File backup adalah tanggung jawab lo.</b> File backup berisi semua catatan keuangan lo. Simpan di tempat yang aman dan jangan dibagikan ke orang lain.</p>'+
-   '<p style="margin:0"><b>Hapus data kapan aja.</b> Tekan "Hapus semua data" di beranda, atau hapus data situs ini lewat pengaturan browser.</p>'+
+   '<p style="margin:0"><b>Hapus data kapan aja.</b> Tekan "Hapus semua data" di beranda. Catatan di akun lo bakal dihapus dari semua perangkat.</p>'+
    '<p class="muted" style="margin:0;font-size:13px">Tampilan huruf dimuat dari Google Fonts, jadi browser lo terhubung ke server Google waktu membuka halaman ini. Data keuangan lo nggak ikut terkirim.</p></div>'+
    '<button class="btn wide" data-close>Oke, ngerti</button>';
   showSheet(html,()=>{$("#sheet").onclick=e=>{const b=e.target.closest("button");if(b&&b.hasAttribute("data-close"))closeSheet();};});

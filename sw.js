@@ -1,11 +1,11 @@
 // Duit Gue service worker: keeps a copy of the app so it opens without internet.
 // App files are fetched fresh whenever there is internet, so normal updates arrive without touching this file.
 // Only bump VERSION when you add, rename or remove a file in APP.
-const VERSION = "duitgue-v13";
+const VERSION = "duitgue-v14";
 const APP = [
   "./", "./index.html", "./manifest.json", "./icon-192.png", "./icon-512.png", "./apple-touch-icon.png",
   "./css/app.css",
-  "./js/main.js", "./js/util.js", "./js/model.js", "./js/store.js", "./js/ui.js", "./js/views.js", "./js/pwa.js", "./js/xlsx.js",
+  "./js/main.js", "./js/util.js", "./js/model.js", "./js/store.js", "./js/ui.js", "./js/views.js", "./js/pwa.js", "./js/xlsx.js", "./js/cloud.js", "./js/firebase-config.js",
   "./js/sheets/tx.js", "./js/sheets/wallet.js", "./js/sheets/categories.js", "./js/sheets/data.js"
 ];
 
@@ -40,8 +40,9 @@ self.addEventListener("fetch", (e) => {
 
   if (req.mode === "navigate") { e.respondWith(networkFirst(req, "./index.html")); return; }
 
-  // Fonts from Google: cached copy first, they never change.
-  if (url.hostname === "fonts.googleapis.com" || url.hostname === "fonts.gstatic.com") {
+  // Google Fonts and the Firebase SDK (versioned URLs): cached copy first, they never change.
+  if (url.hostname === "fonts.googleapis.com" || url.hostname === "fonts.gstatic.com" ||
+      (url.hostname === "www.gstatic.com" && url.pathname.startsWith("/firebasejs/"))) {
     e.respondWith(caches.match(req).then((hit) => hit || fetch(req).then((res) => {
       const copy = res.clone(); caches.open(VERSION).then((c) => c.put(req, copy)); return res;
     })));

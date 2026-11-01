@@ -111,8 +111,25 @@ export function walletEdit(d,{id,name,want,mode},today,now){
     note:diff>0?"Tambah saldo "+name:"Pengeluaran lupa dicatat",cat:diff>0?firstCat(d,"in"):"lain"}:null;
   return{wallets,tx};
 }
+/* Removing an account also removes every transaction that touches it. Returns a change (see applyChange). */
 export function deleteWallet(d,id){
-  return{...d,wallets:d.wallets.filter(w=>w.id!==id),txs:d.txs.filter(t=>t.wallet!==id&&t.to!==id)};
+  return{wallets:d.wallets.filter(w=>w.id!==id),del:d.txs.filter(t=>t.wallet===id||t.to===id).map(t=>t.id)};
+}
+
+/* Every edit is expressed as one change: {wallets?, cats?, put?:[tx], del?:[txId]}.
+   The same change is applied locally and written to the cloud in one batch. */
+export function applyChange(d,c){
+  const out={...d};
+  if(c.wallets)out.wallets=c.wallets;
+  if("cats" in c)out.cats=c.cats;
+  if(c.del&&c.del.length){const del=new Set(c.del);out.txs=out.txs.filter(t=>!del.has(t.id));}
+  if(c.put&&c.put.length){const m=new Map(out.txs.map(t=>[t.id,t]));c.put.forEach(t=>m.set(t.id,t));out.txs=[...m.values()];}
+  return out;
+}
+/* The change that turns `from` into `to` (used for restore and wipe). */
+export function replaceChange(from,to){
+  const keep=new Set(to.txs.map(t=>t.id));
+  return{wallets:to.wallets,cats:to.cats,put:to.txs,del:from.txs.filter(t=>!keep.has(t.id)).map(t=>t.id)};
 }
 
 /* Validate the category editor draft. Returns {cats} or {error}. */

@@ -1,5 +1,5 @@
 /* Sheet: rename, hide or add categories, and set monthly budgets for expense categories. */
-import {S,commit} from "../store.js";
+import {S,apply} from "../store.js";
 import {esc,newId,digits,dotted} from "../util.js";
 import {catList,cleanCats} from "../model.js";
 import {$,showSheet,closeSheet,closeBtn,toast,moneyInput,IC} from "../ui.js";
@@ -32,7 +32,7 @@ function bindCM(){
     if(b.id==="cmSave"){
       const r=cleanCats(S.data,CM);
       if(r.error){$("#cmErr").textContent=r.error;return;}
-      closeSheet();CM=null;S.data.cats=r.cats;commit();toast("Kategori disimpan.");
+      closeSheet();CM=null;apply({cats:r.cats});toast("Kategori disimpan.");
     }
   };
 }
