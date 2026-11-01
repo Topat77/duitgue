@@ -1,0 +1,28 @@
+rules_version = '2';
+
+// Tiap akun cuma bisa baca dan tulis datanya sendiri: users/{uid} dan users/{uid}/txs/{id}.
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function isOwner(uid) {
+      return request.auth != null && request.auth.uid == uid;
+    }
+
+    match /users/{uid} {
+      allow read, write: if isOwner(uid);
+
+      match /txs/{txId} {
+        allow read, delete: if isOwner(uid);
+        allow create, update: if isOwner(uid)
+          && request.resource.data.id == txId
+          && request.resource.data.type in ['in', 'out', 'move']
+          && request.resource.data.amount is number
+          && request.resource.data.amount > 0;
+      }
+    }
+
+    // Selain itu ditolak.
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
